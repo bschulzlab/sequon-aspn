@@ -7,8 +7,7 @@ from sequence import Sequence, sequon_re, sequon_re_modded, Peptide
 accession_re = re.compile(
     "(?P<accession>[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})(?P<isotype>-\d)?")
 
-uniprot = pd.read_csv("data/uniprot_parsed_ASPN.txt", sep="\t", index_col=0)
-normalized_result = pd.read_csv("data/Normalised_result_Tryp_No_Mod.txt", sep="\t")
+normalized_result = pd.read_csv("data/Normalised_result_AspN_No_Reverse.txt", sep="\t")
 
 acc_list = []
 
@@ -83,41 +82,41 @@ for i, df in normalized_result.groupby("Protein"):
                 if stop_position in whole_sequon_data["Start"].values:
                     # print(whole_sequon_data[whole_sequon_data["Start"] == stop_position])
                     a = whole_sequon_data[whole_sequon_data["Start"] == stop_position]
-                    normalized_result.at[ind, "Sequon After C-term"] = a["Sequence"].values[0] + "(" + str(stop_position) + ")"
+                    normalized_result.at[ind, "Sequon After C-term"] = a["Sequence"].values[0] + "(" + str(stop_position+1) + ")"
             #print(sequon)
             for n, n_sequon in sequon.iterrows():
                 if "Sequon Position" not in normalized_result.columns:
                     normalized_result.at[ind, "Sequon Position"] = str(
-                        n_sequon["Start"]) + ";"
+                        n_sequon["Start"]+1) + ";"
 
                     normalized_result.at[ind, "Sequon Sequence"] = n_sequon["Sequence"] \
-                                                            + "(" + str(n_sequon["Start"]) + ")" + ";"
+                                                            + "(" + str(n_sequon["Start"]+1) + ")" + ";"
                 elif pd.isnull(normalized_result.at[ind, "Sequon Position"]):
                     normalized_result.at[ind, "Sequon Position"] = str(
-                        n_sequon["Start"]) + ";"
+                        n_sequon["Start"]+1) + ";"
 
                     normalized_result.at[ind, "Sequon Sequence"] = n_sequon["Sequence"] \
-                                                            + "(" + str(n_sequon["Start"]) + ")" + ";"
+                                                            + "(" + str(n_sequon["Start"]+1) + ")" + ";"
                 else:
                     normalized_result.at[ind, "Sequon Position"] = normalized_result.at[ind, "Sequon Position"] + str(
-                        n_sequon["Start"]) + ";"
+                        n_sequon["Start"]+1) + ";"
                     normalized_result.at[ind, "Sequon Sequence"] = normalized_result.at[ind, "Sequon Sequence"] + n_sequon["Sequence"] \
-                                                            + "(" + str(n_sequon["Start"]) + ")" + ";"
+                                                            + "(" + str(n_sequon["Start"]+1) + ")" + ";"
                 if "Sequon Modification" not in normalized_result.columns:
                     normalized_result.at[ind, "Sequon Modification"] = ""
                 if n_sequon["Modification"] != "" and pd.notnull(n_sequon["Modification"]):
                     if "Sequon Modification" not in normalized_result.columns:
                         normalized_result.at[ind, "Sequon Modification"] = n_sequon[
                                                                                "Modification"] + "(" + str(
-                            n_sequon["Start"]) + ")" + ";"
+                            n_sequon["Start"]+1) + ")" + ";"
                     elif pd.isnull(normalized_result.at[ind, "Sequon Modification"]):
                         normalized_result.at[ind, "Sequon Modification"] = n_sequon[
                                                                                "Modification"] + "(" + str(
-                            n_sequon["Start"]) + ")" + ";"
+                            n_sequon["Start"]+1) + ")" + ";"
                     else:
                         normalized_result.at[ind, "Sequon Modification"] = normalized_result.at[
                                                                                ind, "Sequon Modification"] + n_sequon[
                                                                                "Modification"] + "(" + str(
-                            n_sequon["Start"]) + ")" + ";"
+                            n_sequon["Start"]+1) + ")" + ";"
 
-normalized_result.to_csv("result_trypsin.txt", sep="\t", index=False)
+normalized_result.to_csv("result_aspn.txt", sep="\t", index=False)
