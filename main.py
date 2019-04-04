@@ -4,19 +4,25 @@ from get_uniprot import UniprotSequence, UniprotParser
 from io import StringIO
 from sequence import Sequence, sequon_re, sequon_re_modded, Peptide
 
+normalized_result = pd.read_csv("data/Normalised_result_Tryp_No_Mod.txt", sep="\t")
+output_filename = "result_trypsin.txt"
+
 accession_re = re.compile(
     "(?P<accession>[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})(?P<isotype>-\d)?")
 
-normalized_result = pd.read_csv("data/Normalised_result_AspN_No_Reverse.txt", sep="\t")
+
 
 acc_list = []
 
 for i in normalized_result["Protein"].unique():
     acc = UniprotSequence(i, True)
     if acc.accession != "":
-        acc_list.append(UniprotSequence(i, True))
+        a = UniprotSequence(i, True)
+        acc_list.append([i, a.accession, a.isotype])
 
-p = UniprotParser(acc_list)
+acc_list = pd.DataFrame(acc_list, columns=["protein", "accession", "isotype"])
+p = UniprotParser(acc_list["accession"].unique(), unique=True)
+
 data = []
 for i in p.parse():
     seq = {}
@@ -36,13 +42,19 @@ for i in p.parse():
                 seq["sequence"] += line.strip()
     data.append(seq)
 
+uniprot_additional = []
+for i in p.parse("tab"):
+    a = pd.read_csv(StringIO(i), sep="\t")
+    uniprot_additional.append(a[a.columns[:len(a.columns)-1]])
+uniprot_additional = pd.concat(uniprot_additional, ignore_index=True)
+uniprot_more = acc_list.merge(uniprot_additional, left_on="accession", right_on="Entry")
 data = pd.DataFrame(data)
 data = data.set_index("full id")
 # normalized_result = pd.read_csv("data/Normalised_result_AspN_No_Reverse.txt", sep="\t")
 
 for i, df in normalized_result.groupby("Protein"):
     if i in data.index:
-        print(i)
+        # print(i)
         whole_sequon_data = []
         seq = Sequence(data.loc[i]["sequence"])
         seq_length = len(seq.seq)
@@ -50,7 +62,7 @@ for i, df in normalized_result.groupby("Protein"):
             whole_sequon_data.append([match.start, match.stop, seq.seq[match.start: match.stop], "", "", ""])
         whole_sequon_data = pd.DataFrame(whole_sequon_data, columns=[
             "Start", "Stop", "Sequence", "Start_modded", "Stop_modded", "Modification"])
-        #print(whole_sequon_data)
+        # print(whole_sequon_data)
         for ind, r in df.iterrows():
             s = Peptide(r["Peptide"])
 
@@ -119,4 +131,5 @@ for i, df in normalized_result.groupby("Protein"):
                                                                                "Modification"] + "(" + str(
                             n_sequon["Start"]+1) + ")" + ";"
 
-normalized_result.to_csv("result_aspn.txt", sep="\t", index=False)
+normalized_result = normalized_result.merge(uniprot_more[["protein", "Protein names", "Subcellular location [CC]"]], left_on="Protein", right_on="protein")
+normalized_result.to_csv(output_filename, sep="\t", index=False)

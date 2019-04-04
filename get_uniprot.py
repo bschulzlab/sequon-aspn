@@ -27,8 +27,10 @@ class UniprotParser:
         "User-Agent": "Python, toan.phung@uq.net.au"
     }
 
-    def __init__(self, acc_list):
-        self.acc_list = list(set(i.accession for i in acc_list))
+    def __init__(self, acc_list, unique=False):
+        self.acc_list = acc_list
+        if not unique:
+            self.acc_list = list(set(i for i in self.acc_list))
         self.total_input = len(acc_list)
 
     @staticmethod
