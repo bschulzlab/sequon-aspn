@@ -4,12 +4,11 @@ from get_uniprot import UniprotSequence, UniprotParser
 from io import StringIO
 from sequence import Sequence, sequon_re, sequon_re_modded, Peptide
 
-normalized_result = pd.read_csv("data/Normalised_result_Tryp_No_Mod.txt", sep="\t")
-output_filename = "result_trypsin.txt"
+normalized_result = pd.read_csv("data/Normalised_result_AspN_No_Reverse.txt", sep="\t")
+output_filename = "parsed.Normalised_result_AspN_No_Reverse.txt"
 
 accession_re = re.compile(
     "(?P<accession>[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})(?P<isotype>-\d)?")
-
 
 
 acc_list = []
@@ -65,28 +64,37 @@ for i, df in normalized_result.groupby("Protein"):
         # print(whole_sequon_data)
         for ind, r in df.iterrows():
             s = Peptide(r["Peptide"])
-
+            # print(s.seq)
+            # print(s.stripped_sequon)
             original_position, stop_position, extra_seq = s.map_seq(seq.seq)
             sub_seq = Sequence(s.seq + extra_seq)
             sequon = whole_sequon_data[(whole_sequon_data["Start"] >= original_position) &
                                        (whole_sequon_data["Start"] < stop_position)]
-
+            # print(original_position)
             if not sequon.empty:
                 modded_sequon = []
-                #print(sequon)
+                # print(sequon)
                 current_sequon = -1
                 gap = 0
+                mod_dict = {}
+                last_gap = 0
+                for sub_match in sub_seq.find_with_regex(re.compile("(\[[A-Za-z0-9\.+\-]+\])")):
+                    mod_dict[sub_match.start] = last_gap
+                    last_gap = mod_dict[sub_match.start] + sub_match.stop - sub_match.start
+                # print(mod_dict)
+                for sub_match in sub_seq.find_with_regex(sequon_re_modded):
 
-                for match in sub_seq.find_with_regex(sequon_re_modded, sub_seq.gaps()):
-
-                    if sub_seq.seq[match.start] == "[":
-
+                    if sub_seq.seq[sub_match.start] == "[":
+                        # print(sub_match.start)
+                        actual_gap = mod_dict[sub_match.start] + gap
+                        if "-" in sub_seq.seq[:sub_match.start]:
+                            actual_gap += 1
                         if current_sequon != -1:
-                            remapped = original_position + match.start - gap - 1
-                            #print(remapped)
+                            remapped = original_position + sub_match.start - actual_gap - 1
+                            # print(remapped)
                             if remapped == sequon.iloc[current_sequon]["Start"]:
-                                sequon.iloc[current_sequon, 5] = sub_seq.seq[match.start + 1: match.stop - 1]
-                            gap += match.stop - match.start
+                                sequon.iloc[current_sequon, 5] = sub_seq.seq[sub_match.start + 1: sub_match.stop - 1]
+                            # gap += sub_match.stop - sub_match.start
                     else:
                         current_sequon += 1
             else:
@@ -95,7 +103,7 @@ for i, df in normalized_result.groupby("Protein"):
                     # print(whole_sequon_data[whole_sequon_data["Start"] == stop_position])
                     a = whole_sequon_data[whole_sequon_data["Start"] == stop_position]
                     normalized_result.at[ind, "Sequon After C-term"] = a["Sequence"].values[0] + "(" + str(stop_position+1) + ")"
-            #print(sequon)
+            # print(sequon)
             for n, n_sequon in sequon.iterrows():
                 if "Sequon Position" not in normalized_result.columns:
                     normalized_result.at[ind, "Sequon Position"] = str(
