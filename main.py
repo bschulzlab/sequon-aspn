@@ -4,8 +4,9 @@ from get_uniprot import UniprotSequence, UniprotParser
 from io import StringIO
 from sequence import Sequence, sequon_re, sequon_re_modded, Peptide
 
-normalized_result = pd.read_csv("data/Normalised_result_AspN_No_Reverse.txt", sep="\t")
-output_filename = "parsed.Normalised_result_AspN_No_Reverse.txt"
+normalized_result = pd.read_csv("data/result_A549_flu_No_Reverse_Mod.txt", sep="\t")
+output_filename = "parsed.result_A549_flu_No_Reverse_Mod.txt"
+
 
 accession_re = re.compile(
     "(?P<accession>[OPQ][0-9][A-Z0-9]{3}[0-9]|[A-NR-Z][0-9]([A-Z][A-Z0-9]{2}[0-9]){1,2})(?P<isotype>-\d)?")
@@ -20,7 +21,7 @@ for i in normalized_result["Protein"].unique():
         acc_list.append([i, a.accession, a.isotype])
 
 acc_list = pd.DataFrame(acc_list, columns=["protein", "accession", "isotype"])
-p = UniprotParser(acc_list["accession"].unique(), unique=True)
+p = UniprotParser(acc_list["accession"][pd.notnull(acc_list["accession"])].unique(), unique=True)
 
 data = []
 for i in p.parse():

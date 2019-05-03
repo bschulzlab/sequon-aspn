@@ -61,7 +61,9 @@ class UniprotParser:
 
     def parse(self, format="fasta"):
         for i in range(0, self.total_input, 300):
+
             if (i + 300) <= self.total_input:
+                print(self.acc_list[i: i + 300])
                 params = self.create_params(self.acc_list[i: i + 300], format=format)
             else:
                 params = self.create_params(self.acc_list[i: self.total_input], format=format)
