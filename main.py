@@ -4,8 +4,10 @@ from get_uniprot import UniprotSequence, UniprotParser
 from io import StringIO
 from sequence import Sequence, sequon_re, sequon_re_modded, Peptide
 
-normalized_result = pd.read_csv("data/result_A549_flu_No_Reverse_Mod.txt", sep="\t")
-output_filename = "parsed.result_A549_flu_No_Reverse_Mod.txt"
+accession_column = "Accessions"
+sequence_column = "Sequence"
+normalized_result = pd.read_csv(r"C:\Users\localadmin\Downloads\20191028_BenSchulz_Danila_tun_titration_AllSamples_DDA_DistinctPeptideSummary.txt", sep="\t")
+output_filename = "parsed.20191028_BenSchulz_Danila_tun_titration_AllSamples_DDA_DistinctPeptideSummary.txt"
 
 
 accession_re = re.compile(
@@ -14,11 +16,12 @@ accession_re = re.compile(
 
 acc_list = []
 
-for i in normalized_result["Protein"].unique():
-    acc = UniprotSequence(i, True)
-    if acc.accession != "":
-        a = UniprotSequence(i, True)
-        acc_list.append([i, a.accession, a.isotype])
+for i in normalized_result[accession_column].unique():
+    if pd.notnull(i):
+        acc = UniprotSequence(i, True)
+        if acc.accession != "":
+            a = UniprotSequence(i, True)
+            acc_list.append([i, a.accession, a.isotype])
 
 acc_list = pd.DataFrame(acc_list, columns=["protein", "accession", "isotype"])
 p = UniprotParser(acc_list["accession"][pd.notnull(acc_list["accession"])].unique(), unique=True)
@@ -52,7 +55,7 @@ data = pd.DataFrame(data)
 data = data.set_index("full id")
 # normalized_result = pd.read_csv("data/Normalised_result_AspN_No_Reverse.txt", sep="\t")
 
-for i, df in normalized_result.groupby("Protein"):
+for i, df in normalized_result.groupby(accession_column):
     if i in data.index:
         # print(i)
         whole_sequon_data = []
@@ -64,7 +67,7 @@ for i, df in normalized_result.groupby("Protein"):
             "Start", "Stop", "Sequence", "Start_modded", "Stop_modded", "Modification"])
         # print(whole_sequon_data)
         for ind, r in df.iterrows():
-            s = Peptide(r["Peptide"])
+            s = Peptide(r[sequence_column])
             # print(s.seq)
             # print(s.stripped_sequon)
             original_position, stop_position, extra_seq = s.map_seq(seq.seq)
@@ -140,5 +143,5 @@ for i, df in normalized_result.groupby("Protein"):
                                                                                "Modification"] + "(" + str(
                             n_sequon["Start"]+1) + ")" + ";"
 
-normalized_result = normalized_result.merge(uniprot_more[["protein", "Protein names", "Subcellular location [CC]"]], left_on="Protein", right_on="protein")
+normalized_result = normalized_result.merge(uniprot_more[["protein", "Protein names", "Subcellular location [CC]"]], left_on=accession_column, right_on="protein")
 normalized_result.to_csv(output_filename, sep="\t", index=False)
